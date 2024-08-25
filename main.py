@@ -1,6 +1,18 @@
+from dotenv import load_dotenv
+import os
+from pathlib import Path
+
+# Get the directory of the current script
+script_dir = Path(__file__).resolve().parent
+
+# Construct the path to the jawn.env file
+env_path = script_dir / 'jawn.env'
+
+# Load environment variables from .env file
+load_dotenv(dotenv_path=env_path)
+
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
 import logging
-import os
 import sys
 from story_generator import StoryGenerator
 from protagonists import protagonists
