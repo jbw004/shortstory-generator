@@ -1,3 +1,4 @@
+import urllib.parse
 from dotenv import load_dotenv
 import os
 from pathlib import Path
@@ -84,12 +85,18 @@ def generate_story():
 
             # After story generation is complete, generate the comic
             full_story = "".join(story_chunks)
-            logger.info("Generating comic")
-            comic_url = story_generator.generate_comic(full_story)
-            logger.info(f"Comic generated: {comic_url}")
+            logger.info("Story generation complete. Generating comic...")
+            try:
+                comic_url = story_generator.generate_comic(full_story)
+                # URL encode the comic URL
+                encoded_comic_url = urllib.parse.quote(comic_url)
+                logger.info(f"Comic generated successfully. Encoded URL: {encoded_comic_url}")
+            except Exception as e:
+                logger.error(f"Error generating comic: {str(e)}")
+                encoded_comic_url = ""
             
-            # Yield the comic URL as a special chunk
-            yield f"\n\nCOMIC_URL:{comic_url}"
+            # Yield the encoded comic URL as a special chunk
+            yield f"\n\nCOMIC_URL:{encoded_comic_url}"
 
         return Response(stream_with_context(generate()), content_type='text/plain; charset=utf-8')
 

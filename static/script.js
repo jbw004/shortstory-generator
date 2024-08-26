@@ -40,13 +40,22 @@ function generateStory() {
                     return;
                 }
                 const chunk = decoder.decode(value);
+                console.log('Received chunk:', chunk);  // Log each received chunk
                 if (chunk.startsWith('\n\nCOMIC_URL:')) {
-                    const comicUrl = chunk.split(':')[1].trim();
-                    comicImage.src = comicUrl;
-                    comicImage.style.display = 'block';
+                    const encodedComicUrl = chunk.split(':')[1].trim();
+                    console.log('Encoded comic URL received:', encodedComicUrl);
+                    if (encodedComicUrl && encodedComicUrl !== '') {
+                        const decodedComicUrl = decodeURIComponent(encodedComicUrl);
+                        console.log('Decoded comic URL:', decodedComicUrl);
+                        comicImage.src = decodedComicUrl;
+                        comicImage.style.display = 'block';
+                        console.log('Comic image display attempted');
+                    } else {
+                        console.log('Invalid or missing comic URL');
+                    }
                 } else {
                     storyElement.textContent += chunk;
-                    storyElement.scrollTop = storyElement.scrollHeight;  // Auto-scroll to the bottom
+                    storyElement.scrollTop = storyElement.scrollHeight;
                 }
                 return readChunk();
             });
