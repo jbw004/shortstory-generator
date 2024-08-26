@@ -1,5 +1,6 @@
 import logging
 from anthropic import Anthropic
+from openai import OpenAI
 import os
 import traceback
 import time
@@ -10,8 +11,11 @@ class StoryGenerator:
     def __init__(self):
         logger.info("Initializing StoryGenerator")
         self.anthropic = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        self.openai = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         if not os.environ.get("ANTHROPIC_API_KEY"):
             logger.error("ANTHROPIC_API_KEY not found in environment variables")
+        if not os.environ.get("OPENAI_API_KEY"):
+            logger.error("OPENAI_API_KEY not found in environment variables")
 
     def generate_char_style_info(self, protagonist_name, original_story, author):
         try:
@@ -137,3 +141,48 @@ class StoryGenerator:
             logger.error(f"Unexpected error in generate_story: {str(e)}")
             logger.error(traceback.format_exc())
             yield f"An unexpected error occurred during story generation: {str(e)}"
+    def generate_comic(self, story_summary):
+        try:
+            logger.info("Starting comic generation with OpenAI")
+
+            # Truncate the story summary to ensure the prompt fits within limits
+            max_summary_length = 300  # Adjust this value as needed
+            truncated_summary = story_summary[:max_summary_length] + ("..." if len(story_summary) > max_summary_length else "")
+            
+            prompt = f"""Create a 6-panel manga-style webcomic:
+        1. Key scenes from this story: {truncated_summary}
+        2. Blank speech bubbles where appropriate
+        3. Black and white manga art style
+        4. Logical story flow across panels
+        5. No text or writing in images
+        Generate as single image with 6 distinct panels."""
+
+            logger.info(f"Sending prompt to OpenAI: {prompt}")
+            response = self.openai.images.generate(
+                model="dall-e-3",
+                prompt=prompt,
+                size="1024x1024",
+                quality="standard",
+                n=1,
+            )
+            logger.info("Received response from OpenAI")
+
+            image_url = response.data[0].url
+            logger.info(f"Comic generated successfully. URL: {image_url}")
+            return image_url
+        except Exception as e:
+            logger.error(f"Error in generate_comic: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
+
+    def generate_story_and_comic(self, char_style_info, situation_setup, author):
+        try:
+            logger.info("Starting story and comic generation")
+            story = self.generate_story(char_style_info, situation_setup, author)
+            story_summary = " ".join(list(story))  # Collect the entire story
+            comic_url = self.generate_comic(story_summary)
+            return story_summary, comic_url
+        except Exception as e:
+            logger.error(f"Error in generate_story_and_comic: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise

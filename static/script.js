@@ -2,6 +2,7 @@ function generateStory() {
     const circumstance = document.getElementById('circumstance').value;
     const protagonist = document.getElementById('protagonist').value;
     const storyElement = document.getElementById('story');
+    const comicImage = document.getElementById('comicImage');
     const generateButton = document.getElementById('generateButton');
 
     if (!circumstance || !protagonist) {
@@ -10,6 +11,7 @@ function generateStory() {
     }
 
     storyElement.textContent = 'Generating story...';
+    comicImage.style.display = 'none';
     generateButton.disabled = true;
 
     fetch('/generate', {
@@ -38,8 +40,14 @@ function generateStory() {
                     return;
                 }
                 const chunk = decoder.decode(value);
-                storyElement.textContent += chunk;
-                storyElement.scrollTop = storyElement.scrollHeight;  // Auto-scroll to the bottom
+                if (chunk.startsWith('\n\nCOMIC_URL:')) {
+                    const comicUrl = chunk.split(':')[1].trim();
+                    comicImage.src = comicUrl;
+                    comicImage.style.display = 'block';
+                } else {
+                    storyElement.textContent += chunk;
+                    storyElement.scrollTop = storyElement.scrollHeight;  // Auto-scroll to the bottom
+                }
                 return readChunk();
             });
         }
@@ -47,7 +55,7 @@ function generateStory() {
         return readChunk();
     }).catch(error => {
         console.error('Error:', error);
-        storyElement.textContent = `An error occurred while generating the story: ${error.message}. Please try again.`;
+        storyElement.textContent = `An error occurred while generating the story and comic: ${error.message}. Please try again.`;
         generateButton.disabled = false;
     });
 }

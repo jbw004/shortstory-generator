@@ -52,7 +52,6 @@ def index():
     return render_template('index.html', protagonists=protagonists)
 
 @app.route('/generate', methods=['POST'])
-
 def generate_story():
     try:
         logger.info("Generate story route called")
@@ -78,8 +77,19 @@ def generate_story():
 
         def generate():
             logger.info("Starting story generation")
+            story_chunks = []
             for chunk in story_generator.generate_story(char_style_info, situation_setup, author):
+                story_chunks.append(chunk)
                 yield chunk
+
+            # After story generation is complete, generate the comic
+            full_story = "".join(story_chunks)
+            logger.info("Generating comic")
+            comic_url = story_generator.generate_comic(full_story)
+            logger.info(f"Comic generated: {comic_url}")
+            
+            # Yield the comic URL as a special chunk
+            yield f"\n\nCOMIC_URL:{comic_url}"
 
         return Response(stream_with_context(generate()), content_type='text/plain; charset=utf-8')
 
