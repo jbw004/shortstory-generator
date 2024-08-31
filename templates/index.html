@@ -44,29 +44,27 @@
 <body>
     <h1>Story Generator</h1>
     <form id="storyForm">
-        <label for="circumstance">Enter a circumstance:</label>
-        <input type="text" id="circumstance" name="circumstance" required>
-
-        <label for="protagonist">Select a protagonist:</label>
+        Enter a circumstance: <input type="text" id="circumstance" name="circumstance" required>
+    
+        Select a protagonist: 
         <select id="protagonist" name="protagonist" required>
             <option value="">Choose a protagonist</option>
             {% for protagonist in protagonists %}
-            <option value="{{ protagonist.Protagonist }}">{{ protagonist.Protagonist }} ({{ protagonist['Original Story'] }})</option>
+                <option value="{{ protagonist.Protagonist }}">{{ protagonist.Protagonist }} ({{ protagonist['Original Story'] }})</option>
             {% endfor %}
         </select>
-
+    
         <button type="submit" id="generateButton">Generate Story</button>
     </form>
-
-    <h2>Generated Story</h2>
-    <div id="story"></div>
-
-    <h2>Generated Comic</h2>
-    <img id="comicImage" style="display: none;" alt="Generated Comic">
-
-    <h2>Dialogue</h2>
+    
+    ## Generated Comic
+    
+    <div id="comicContainer"></div>
+    
+    ## Dialogue
+    
     <div id="dialogue"></div>
-
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>    
 </body>
 </html>

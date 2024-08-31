@@ -222,16 +222,69 @@ class StoryGenerator:
             
             # Generate the story
             story = self.generate_story(char_style_info, situation_setup, author)
-            story_summary = story  # The story is already a complete text
             
-            # Generate the textless comic
-            comic_url = self.generate_comic(story_summary)
+            # Generate the panels sequentially
+            panels = []
+            for i in range(6):
+                panel_prompt = self.create_panel_prompt(story, panels, i+1)
+                panel_url = self.generate_panel(panel_prompt)
+                panels.append({"url": panel_url, "prompt": panel_prompt})
             
             # Generate dialogue for the comic
-            dialogue = self.generate_dialogue(story_summary, comic_url)
+            dialogue = self.generate_dialogue(story, panels)
             
-            return story_summary, comic_url, dialogue
+            return panels, dialogue
         except Exception as e:
             logger.error(f"Error in generate_story_and_comic: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
+
+    def create_panel_prompt(self, story, existing_panels, panel_number):
+        context = f"Story so far: {story}\n\n"
+        if existing_panels:
+            context += "Previous panels:\n"
+            for i, panel in enumerate(existing_panels):
+                context += f"Panel {i+1}: {panel['prompt']}\n"
+        
+        prompt = f"""{context}
+
+        Create a prompt for panel {panel_number} of a 6-panel manga-style webcomic based on the story above. This panel should:
+
+        1. Logically follow from the previous panels (if any) and advance the story.
+        2. Focus on a key moment or action that's visually interesting.
+        3. Convey character emotions and the overall mood of the scene.
+        4. Include relevant background details that establish the setting.
+        5. Be described in a way that can be clearly visualized and drawn.
+
+        Remember:
+        - The image should be in black and white manga style with clean lines and expressive characters.
+        - Do not include any text, speech bubbles, or written elements in the description.
+        - Focus on visual elements only.
+
+        Describe the panel in about 2-3 sentences, focusing on what should be drawn."""
+
+        return self.anthropic.messages.create(
+            model="claude-3-5-sonnet-20240620",
+            max_tokens=150,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        ).content[0].text
+
+    def generate_panel(self, panel_prompt):
+        try:
+            logger.info(f"Generating panel with prompt: {panel_prompt[:100]}...")
+            response = self.openai.images.generate(
+                model="dall-e-3",
+                prompt=f"Create a black and white manga-style panel for a webcomic. {panel_prompt} Do not include any text or speech bubbles.",
+                size="1024x1024",
+                quality="standard",
+                n=1,
+            )
+            image_url = response.data[0].url
+            logger.info(f"Panel generated successfully. URL: {image_url}")
+            return image_url
+        except Exception as e:
+            logger.error(f"Error in generate_panel: {str(e)}")
             logger.error(traceback.format_exc())
             raise

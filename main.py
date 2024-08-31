@@ -71,20 +71,12 @@ def generate_story():
         char_style_info = story_generator.generate_char_style_info(protagonist_name, original_story, author)
         situation_setup = story_generator.generate_situation_setup(circumstance, char_style_info)
         
-        def generate():
-            story_summary, comic_url, dialogue = story_generator.generate_story_and_comic(char_style_info, situation_setup, author)
-            
-            # Yield the story
-            yield story_summary
-
-            # Yield the comic URL as a special chunk
-            encoded_comic_url = urllib.parse.quote(comic_url)
-            yield f"\n\nCOMIC_URL:{encoded_comic_url}"
-
-            # Yield the dialogue as a special chunk
-            yield f"\n\nDIALOGUE:{dialogue}"
-
-        return Response(stream_with_context(generate()), content_type='text/plain; charset=utf-8')
+        panels, dialogue = story_generator.generate_story_and_comic(char_style_info, situation_setup, author)
+        
+        return jsonify({
+            "panels": panels,
+            "dialogue": dialogue
+        })
 
     except Exception as e:
         logger.error(f"An error occurred in generate_story route: {str(e)}")

@@ -1,8 +1,7 @@
 function generateStory() {
     const circumstance = document.getElementById('circumstance').value;
     const protagonist = document.getElementById('protagonist').value;
-    const storyElement = document.getElementById('story');
-    const comicImage = document.getElementById('comicImage');
+    const comicContainer = document.getElementById('comicContainer');
     const dialogueElement = document.getElementById('dialogue');
     const generateButton = document.getElementById('generateButton');
 
@@ -11,9 +10,8 @@ function generateStory() {
         return;
     }
 
-    storyElement.textContent = 'Generating story...';
-    comicImage.style.display = 'none';
-    dialogueElement.textContent = '';
+    comicContainer.innerHTML = '';
+    dialogueElement.textContent = 'Generating...';
     generateButton.disabled = true;
 
     fetch('/generate', {
@@ -25,54 +23,33 @@ function generateStory() {
             'circumstance': circumstance,
             'protagonist': protagonist
         })
-    }).then(response => {
+    })
+    .then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-
-        storyElement.textContent = '';  // Clear the "Generating story..." message
-
-        let fullStory = '';
-
-        function readChunk() {
-            return reader.read().then(({ done, value }) => {
-                if (done) {
-                    console.log('Stream complete');
-                    generateButton.disabled = false;
-                    return;
-                }
-                const chunk = decoder.decode(value);
-                console.log('Received chunk:', chunk);  // Log each received chunk
-                if (chunk.startsWith('\n\nCOMIC_URL:')) {
-                    const encodedComicUrl = chunk.split(':')[1].trim();
-                    console.log('Encoded comic URL received:', encodedComicUrl);
-                    if (encodedComicUrl && encodedComicUrl !== '') {
-                        const decodedComicUrl = decodeURIComponent(encodedComicUrl);
-                        console.log('Decoded comic URL:', decodedComicUrl);
-                        comicImage.src = decodedComicUrl;
-                        comicImage.style.display = 'block';
-                        console.log('Comic image display attempted');
-                    } else {
-                        console.log('Invalid or missing comic URL');
-                    }
-                } else if (chunk.startsWith('\n\nDIALOGUE:')) {
-                    const dialogueContent = chunk.split('\n\nDIALOGUE:')[1].trim();
-                    dialogueElement.innerHTML = formatDialogue(dialogueContent);
-                } else {
-                    fullStory += chunk;
-                    storyElement.textContent = fullStory;
-                    storyElement.scrollTop = storyElement.scrollHeight;
-                }
-                return readChunk();
+        return response.json();
+    })
+    .then(data => {
+        if (data.panels && data.panels.length > 0) {
+            data.panels.forEach((panel, index) => {
+                const panelElement = document.createElement('div');
+                panelElement.className = 'comic-panel';
+                const img = document.createElement('img');
+                img.src = panel.url;
+                img.alt = `Panel ${index + 1}`;
+                panelElement.appendChild(img);
+                comicContainer.appendChild(panelElement);
             });
         }
-
-        return readChunk();
-    }).catch(error => {
+        if (data.dialogue) {
+            dialogueElement.innerHTML = formatDialogue(data.dialogue);
+        }
+        generateButton.disabled = false;
+    })
+    .catch(error => {
         console.error('Error:', error);
-        storyElement.textContent = `An error occurred while generating the story and comic: ${error.message}. Please try again.`;
+        dialogueElement.textContent = `An error occurred: ${error.message}. Please try again.`;
         generateButton.disabled = false;
     });
 }
