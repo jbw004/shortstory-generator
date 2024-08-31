@@ -2,7 +2,8 @@ function generateStory() {
     const circumstance = document.getElementById('circumstance').value;
     const protagonist = document.getElementById('protagonist').value;
     const comicContainer = document.getElementById('comicContainer');
-    const dialogueElement = document.getElementById('dialogue');
+    const storyElement = document.getElementById('story');
+    const visualSummaryElement = document.getElementById('visualSummary');
     const generateButton = document.getElementById('generateButton');
 
     if (!circumstance || !protagonist) {
@@ -11,7 +12,8 @@ function generateStory() {
     }
 
     comicContainer.innerHTML = '';
-    dialogueElement.textContent = 'Generating...';
+    storyElement.textContent = 'Generating...';
+    visualSummaryElement.textContent = '';
     generateButton.disabled = true;
 
     fetch('/generate', {
@@ -31,42 +33,26 @@ function generateStory() {
         return response.json();
     })
     .then(data => {
-        if (data.panels && data.panels.length > 0) {
-            data.panels.forEach((panel, index) => {
-                const panelElement = document.createElement('div');
-                panelElement.className = 'comic-panel';
-                const img = document.createElement('img');
-                img.src = panel.url;
-                img.alt = `Panel ${index + 1}`;
-                panelElement.appendChild(img);
-                comicContainer.appendChild(panelElement);
-            });
+        if (data.comic_url) {
+            const img = document.createElement('img');
+            img.src = data.comic_url;
+            img.alt = 'Generated Comic';
+            img.className = 'comic-image';
+            comicContainer.appendChild(img);
         }
-        if (data.dialogue) {
-            dialogueElement.innerHTML = formatDialogue(data.dialogue);
+        if (data.story) {
+            storyElement.textContent = data.story;
+        }
+        if (data.visual_summary) {
+            visualSummaryElement.textContent = data.visual_summary;
         }
         generateButton.disabled = false;
     })
     .catch(error => {
         console.error('Error:', error);
-        dialogueElement.textContent = `An error occurred: ${error.message}. Please try again.`;
+        storyElement.textContent = `An error occurred: ${error.message}. Please try again.`;
         generateButton.disabled = false;
     });
-}
-
-function formatDialogue(dialogue) {
-    // Split the dialogue into panels
-    const panels = dialogue.split('\n\n');
-    let formattedDialogue = '';
-
-    panels.forEach((panel, index) => {
-        formattedDialogue += `<div class="panel">
-            <h3>Panel ${index + 1}</h3>
-            ${panel.replace(/\n/g, '<br>')}
-        </div>`;
-    });
-
-    return formattedDialogue;
 }
 
 document.addEventListener('DOMContentLoaded', () => {

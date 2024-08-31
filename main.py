@@ -71,11 +71,12 @@ def generate_story():
         char_style_info = story_generator.generate_char_style_info(protagonist_name, original_story, author)
         situation_setup = story_generator.generate_situation_setup(circumstance, char_style_info)
         
-        panels, dialogue = story_generator.generate_story_and_comic(char_style_info, situation_setup, author)
+        comic_url, story, visual_summary = story_generator.generate_story_and_comic(char_style_info, situation_setup, author)
         
         return jsonify({
-            "panels": panels,
-            "dialogue": dialogue
+            "comic_url": comic_url,
+            "story": story,
+            "visual_summary": visual_summary
         })
 
     except Exception as e:

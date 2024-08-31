@@ -8,9 +8,6 @@ import time
 logger = logging.getLogger(__name__)
 
 class StoryGenerator:
-    FACE_REMINDER = ("CRITICAL: The protagonist's face must NEVER be shown under any circumstances. "
-                     "Use creative techniques like showing the character from behind, using objects to obstruct the face, "
-                     "cropping the image, or focusing on other body parts to convey emotions and actions.")
 
     def __init__(self):
         logger.info("Initializing StoryGenerator")
@@ -25,8 +22,6 @@ class StoryGenerator:
         try:
             logger.info(f"Generating character style info for {protagonist_name}")
             char_style_prompt = f"""Provide a detailed character profile and writing style analysis for a modern adaptation of {protagonist_name} from {original_story} by {author}:
-
-            {self.FACE_REMINDER}
 
             1. Character Profile:
                a) Core personality traits (list 3-5 key traits)
@@ -44,8 +39,6 @@ class StoryGenerator:
                e) Descriptive techniques for settings and characters
                f) Literary devices frequently employed (e.g., metaphors, flashbacks)
                g) Sentence structure and vocabulary level
-
-            Important: When describing the character's appearance, do not include any details about their face. Focus on other physical attributes, clothing style, and body language.
 
             Ensure all descriptions are applicable to a realistic, modern-day setting and provide specific examples where possible."""
 
@@ -71,8 +64,6 @@ class StoryGenerator:
 
             Character traits: {char_style_info}
 
-            {self.FACE_REMINDER}
-
             Provide:
             1. Setting: Describe the specific location and time of day. What visual elements would be prominent?
             2. Inciting Incident: What exactly happens to bring the character into this circumstance?
@@ -83,7 +74,7 @@ class StoryGenerator:
 
             Important: When describing the character's actions and appearance, avoid mentioning their facial features or expressions. Instead, focus on body language, gestures, and other visual cues to convey emotions and reactions.
 
-            Describe the scenario in about 150 words, focusing on vivid, visual details and emotionally charged moments that would translate well to a comic format without showing the protagonist's face."""
+            Describe the scenario in about 150 words, focusing on vivid, visual details and emotionally charged moments that would translate well to a comic format."""
 
             logger.debug(f"Situation setup prompt: {situation_prompt[:200]}...")
             situation_response = self.anthropic.messages.create(
@@ -103,37 +94,38 @@ class StoryGenerator:
     def generate_story(self, char_style_info, situation_setup, author):
         try:
             logger.info("Starting story generation")
-            story_prompt = f"""Write a 500-word narrative that can be easily adapted into a 6-panel manga-style comic. Use these details:
-
-            {self.FACE_REMINDER}
+            story_prompt = f"""Write a high-quality short story of approximately 500 words based on the following details:
 
             Character Profile: {char_style_info}
             Situation: {situation_setup}
 
-            Structure the story in 6 distinct scenes, each corresponding to a comic panel:
-
-            1. Opening Scene: Introduce the character and setting visually. Include a thought or short dialogue that establishes the mood.
-            2. Inciting Incident: Show the event that draws the character into the situation. Focus on their immediate reaction.
-            3. Rising Action: Depict the character facing the main conflict or challenge. Include dialogue or internal monologue that reveals their struggle.
-            4. Complication: Introduce a twist or additional obstacle. Show how this affects the character emotionally or physically.
-            5. Climax: Present the peak of the conflict. This should be the most visually and emotionally intense scene.
-            6. Resolution: Conclude with the character's final decision or the outcome of their actions. Include a visual or dialogue element that echoes the opening scene.
-
             Guidelines:
-            - Use vivid, visual language that can be easily translated into comic panels.
-            - Include short, impactful dialogue or thought bubbles for each scene.
-            - Incorporate the character's unique traits and the author's writing style throughout.
-            - Ensure each scene has a clear visual focus and emotional beat.
-            - Convey the protagonist's emotions through body language, actions, and surroundings rather than facial expressions.
-            - Never describe the protagonist's facial features or expressions directly.
+            1. Write the story in a "cinematic first-person" viewpoint, using "I" as the narrator (the protagonist).
+            2. Describe scenes vividly through the protagonist's eyes, focusing on sensory details.
+            3. Use present tense to create a sense of immediacy.
+            4. Emulate the distinctive voice and style of {author}, adapting it to this first-person perspective.
+            5. Create a compelling narrative arc with a clear beginning, middle, and end.
+            6. Incorporate dialogue that reflects the character's voice and advances the plot.
+            7. Explore the protagonist's inner thoughts and emotions as they navigate the situation.
+            8. Include a subtle theme or message that resonates with the character's journey.
+            9. Conclude with a satisfying resolution true to the author's style.
 
-            Write in the style of {author}, paying attention to their narrative techniques and tonal qualities."""
+            After writing the story, provide a brief summary of key visual elements in the following format:
+
+            VISUAL SUMMARY:
+            - Setting: [Describe the main setting or settings]
+            - Protagonist: [Describe the protagonist's appearance and most notable visual characteristics]
+            - Key Object: [Describe an important object or symbol in the story]
+            - Action: [Describe a key action or scene that encapsulates the story's climax or theme]
+            - Mood: [Describe the overall visual mood or atmosphere of the story]
+
+            Ensure this visual summary captures the most striking and important visual aspects of your story."""
 
             logger.debug(f"Story generation prompt: {story_prompt[:200]}...")
 
             response = self.anthropic.messages.create(
                 model="claude-3-5-sonnet-20240620",
-                max_tokens=2000,
+                max_tokens=2500,
                 temperature=0.7,
                 messages=[
                     {"role": "user", "content": story_prompt}
@@ -147,166 +139,80 @@ class StoryGenerator:
             logger.error(traceback.format_exc())
             raise
 
-    def generate_comic(self, story_summary):
-        try:
-            logger.info("Starting comic generation with OpenAI")
-
-            max_summary_length = 100
-            truncated_summary = story_summary[:max_summary_length] + ("..." if len(story_summary) > max_summary_length else "")
-            
-            prompt = f"""Create a 6-panel manga-style webcomic without any text, inspired by this story concept: {truncated_summary}
-
-            {self.FACE_REMINDER}
-
-            Comic Specifications:
-            1. Style: Black and white manga art style with clean lines and expressive characters.
-            2. Layout: 6 distinct panels arranged in a 2x3 grid.
-            3. Panel Content:
-               Panel 1: Introduce the main character in their everyday environment.
-               Panel 2: Show the character encountering a new situation or challenge.
-               Panel 3: Depict the character's reaction or initial attempt to address the situation.
-               Panel 4: Illustrate a moment of reflection or decision-making.
-               Panel 5: Show the character taking action based on their decision.
-               Panel 6: Conclude with the character in a new state or environment, changed by their experience.
-            4. Character Design: Create a relatable protagonist without showing their face. Use body language, clothing, and surroundings to convey personality and emotions.
-            5. Backgrounds: Include simple but effective backgrounds that establish the setting and help convey the protagonist's emotions.
-            6. Visual Storytelling: Use varied angles, perspectives, and visual metaphors to convey the story without words or facial expressions.
-            7. Emotion: Focus on the protagonist's body language, gestures, and interaction with the environment to convey emotions clearly.
-            8. NO TEXT: Do not include any speech bubbles, captions, or written elements of any kind.
-            9. Protagonist's Face: Never show the protagonist's face. Use creative angles, objects in the foreground, or show the character from behind to maintain this consistency.
-
-            Generate as a single image with 6 clearly defined panels. Ensure a logical visual flow across panels, absolutely no text or writing in the images, and never reveal the protagonist's face."""
-
-            logger.info(f"Sending prompt to OpenAI: {prompt}")
-            response = self.openai.images.generate(
-                model="dall-e-3",
-                prompt=prompt,
-                size="1024x1024",
-                quality="standard",
-                n=1,
-            )
-            logger.info("Received response from OpenAI")
-
-            image_url = response.data[0].url
-            logger.info(f"Comic generated successfully. URL: {image_url}")
-            return image_url
-        except Exception as e:
-            logger.error(f"Error in generate_comic: {str(e)}")
-            logger.error(traceback.format_exc())
-            raise
-
-    def generate_dialogue(self, story_summary, comic_url):
-        dialogue_prompt = f"""Based on the following story summary and a 6-panel comic image, generate appropriate dialogue or narrative text for each panel:
-
-        Story Summary: {story_summary}
-
-        Comic Image URL: {comic_url}
-
-        For each of the 6 panels, provide:
-        1. A brief description of what's visually happening in the panel (2-3 sentences), focusing on the protagonist's body language and surroundings rather than facial expressions.
-        2. Any dialogue that would be appropriate for the characters in the scene (if applicable)
-        3. Any narrative text that would enhance the story (if needed)
-
-        Format your response as follows:
-
-        Panel 1:
-        Visual Description: [Description here]
-        Dialogue/Narrative: [Text here]
-
-        Panel 2:
-        Visual Description: [Description here]
-        Dialogue/Narrative: [Text here]
-
-        ... (continue for all 6 panels)
-
-        Ensure the dialogue and narrative text align with the story summary and what can be inferred from the comic panels. Keep the text concise and impactful, suitable for a comic format. Remember that the protagonist's face is never shown, so focus on other ways to convey their emotions and reactions."""
-
-        try:
-            response = self.anthropic.messages.create(
-                model="claude-3-5-sonnet-20240620",
-                max_tokens=1000,
-                messages=[
-                    {"role": "user", "content": dialogue_prompt}
-                ]
-            )
-            return response.content[0].text
-        except Exception as e:
-            logger.error(f"Error in generate_dialogue: {str(e)}")
-            logger.error(traceback.format_exc())
-            raise
-
     def generate_story_and_comic(self, char_style_info, situation_setup, author):
         try:
             logger.info("Starting story and comic generation")
             
-            # Generate the story
-            story = self.generate_story(char_style_info, situation_setup, author)
+            # Generate the story with visual summary
+            full_story = self.generate_story(char_style_info, situation_setup, author)
             
-            # Generate the panels sequentially
-            panels = []
-            for i in range(6):
-                panel_prompt = self.create_panel_prompt(story, panels, i+1)
-                panel_url = self.generate_panel(panel_prompt)
-                panels.append({"url": panel_url, "prompt": panel_prompt})
+            # Split the story and visual summary
+            story_parts = full_story.split("VISUAL SUMMARY:")
+            story = story_parts[0].strip()
+            visual_summary = "VISUAL SUMMARY:" + story_parts[1].strip() if len(story_parts) > 1 else ""
             
-            # Generate dialogue for the comic
-            dialogue = self.generate_dialogue(story, panels)
+            # Generate the single comic image
+            comic_url = self.generate_comic(full_story)
             
-            return panels, dialogue
+            return comic_url, story, visual_summary
         except Exception as e:
             logger.error(f"Error in generate_story_and_comic: {str(e)}")
             logger.error(traceback.format_exc())
             raise
 
-    def create_panel_prompt(self, story, existing_panels, panel_number):
-        context = f"Story so far: {story}\n\n"
-        if existing_panels:
-            context += "Previous panels:\n"
-            for i, panel in enumerate(existing_panels):
-                context += f"Panel {i+1}: {panel['prompt']}\n"
-        
-        prompt = f"""{context}
-
-        {self.FACE_REMINDER}
-
-        Create a prompt for panel {panel_number} of a 6-panel manga-style webcomic based on the story above. This panel should:
-
-        1. Logically follow from the previous panels (if any) and advance the story.
-        2. Focus on a key moment or action that's visually interesting.
-        3. Convey character emotions through body language, gestures, and interaction with the environment.
-        4. Include relevant background details that establish the setting and mood.
-        5. Be described in a way that can be clearly visualized and drawn without showing the protagonist's face.
-
-        Remember:
-        - The image should be in black and white manga style with clean lines and expressive characters.
-        - The protagonist's face must never be shown. Use creative angles, objects in the foreground, or show the character from behind.
-        - Do not include any text, speech bubbles, or written elements in the description.
-        - Focus on visual elements only, emphasizing body language and environmental cues to convey emotions.
-
-        Describe the panel in about 2-3 sentences, focusing on what should be drawn while maintaining the 'faceless protagonist' constraint."""
-
-        return self.anthropic.messages.create(
-            model="claude-3-5-sonnet-20240620",
-            max_tokens=150,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        ).content[0].text
-
-    def generate_panel(self, panel_prompt):
+    def generate_comic(self, story):
         try:
-            logger.info(f"Generating panel with prompt: {panel_prompt[:100]}...")
+            logger.info("Starting comic generation with OpenAI")
+
+            # Extract the visual summary from the story
+            visual_summary_start = story.find("VISUAL SUMMARY:")
+            visual_summary = story[visual_summary_start:].strip() if visual_summary_start != -1 else ""
+
+            prompt = f"""Create a single, detailed manga-style webcomic image in the style of Tsutomu Nihei, inspired by this story concept and visual summary:
+
+            {visual_summary}
+
+            Image Specifications:
+            1. Style: Black and white manga art style inspired by Tsutomu Nihei's work, known for:
+               - Intricate, highly detailed architectural and mechanical designs
+               - Vast, often dystopian or post-apocalyptic settings
+               - Stark contrast between black and white elements
+               - Complex, biomechanical aesthetics
+            2. Composition: A single, full-page image that captures the essence of the story
+            3. Character Design: Create a protagonist based on the description, fitting Nihei's style:
+               - Intricate, often utilitarian or biomechanical outfits
+               - Stoic or intense expressions
+               - Integration with the surrounding environment
+            4. Setting: Develop a detailed, immersive background that reflects the story's setting:
+               - Vast, labyrinthine structures or cityscapes
+               - Blend of organic and mechanical elements
+               - Use of perspective to create a sense of scale and depth
+            5. Visual Storytelling: 
+               - Incorporate the key object and action described in the visual summary
+               - Use visual metaphors or symbolic elements to convey the story's essence
+               - Create a sense of action or tension through character positioning and environmental details
+            6. Lighting and Texture:
+               - Employ strong contrasts between light and shadow
+               - Use intricate textures and patterns to add depth and detail
+               - Create a mood that reflects the story's described atmosphere
+            7. NO TEXT: Do not include any speech bubbles, captions, or written elements of any kind.
+
+            Generate as a single, highly detailed image that captures the essence of the story in Tsutomu Nihei's distinctive style, while accurately representing the specific elements described in the visual summary."""
+
+            logger.info(f"Sending prompt to OpenAI: {prompt[:200]}...")
             response = self.openai.images.generate(
                 model="dall-e-3",
-                prompt=f"Create a black and white manga-style panel for a webcomic. {self.FACE_REMINDER} {panel_prompt} Do not include any text or speech bubbles. Explicitly ensure that the protagonist's face is not visible in any way - use creative angles, objects in the foreground, or show them from behind. Focus on body language and environmental cues to convey emotions.",
+                prompt=prompt,
                 size="1024x1024",
-                quality="standard",
+                quality="hd",
                 n=1,
             )
+            logger.info("Received response from OpenAI")
+
             image_url = response.data[0].url
-            logger.info(f"Panel generated successfully. URL: {image_url}")
+            logger.info(f"Comic image generated successfully. URL: {image_url}")
             return image_url
         except Exception as e:
-            logger.error(f"Error in generate_panel: {str(e)}")
+            logger.error(f"Error in generate_comic: {str(e)}")
             logger.error(traceback.format_exc())
             raise
