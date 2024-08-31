@@ -8,6 +8,10 @@ import time
 logger = logging.getLogger(__name__)
 
 class StoryGenerator:
+    FACE_REMINDER = ("CRITICAL: The protagonist's face must NEVER be shown under any circumstances. "
+                     "Use creative techniques like showing the character from behind, using objects to obstruct the face, "
+                     "cropping the image, or focusing on other body parts to convey emotions and actions.")
+
     def __init__(self):
         logger.info("Initializing StoryGenerator")
         self.anthropic = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
@@ -21,6 +25,8 @@ class StoryGenerator:
         try:
             logger.info(f"Generating character style info for {protagonist_name}")
             char_style_prompt = f"""Provide a detailed character profile and writing style analysis for a modern adaptation of {protagonist_name} from {original_story} by {author}:
+
+            {self.FACE_REMINDER}
 
             1. Character Profile:
                a) Core personality traits (list 3-5 key traits)
@@ -38,6 +44,8 @@ class StoryGenerator:
                e) Descriptive techniques for settings and characters
                f) Literary devices frequently employed (e.g., metaphors, flashbacks)
                g) Sentence structure and vocabulary level
+
+            Important: When describing the character's appearance, do not include any details about their face. Focus on other physical attributes, clothing style, and body language.
 
             Ensure all descriptions are applicable to a realistic, modern-day setting and provide specific examples where possible."""
 
@@ -63,6 +71,8 @@ class StoryGenerator:
 
             Character traits: {char_style_info}
 
+            {self.FACE_REMINDER}
+
             Provide:
             1. Setting: Describe the specific location and time of day. What visual elements would be prominent?
             2. Inciting Incident: What exactly happens to bring the character into this circumstance?
@@ -71,7 +81,9 @@ class StoryGenerator:
             5. Supporting Characters: Introduce 1-2 other characters who might be involved. How do they look and act?
             6. Potential for Drama: What elements of this scenario could lead to interesting visual storytelling?
 
-            Describe the scenario in about 150 words, focusing on vivid, visual details and emotionally charged moments that would translate well to a comic format."""
+            Important: When describing the character's actions and appearance, avoid mentioning their facial features or expressions. Instead, focus on body language, gestures, and other visual cues to convey emotions and reactions.
+
+            Describe the scenario in about 150 words, focusing on vivid, visual details and emotionally charged moments that would translate well to a comic format without showing the protagonist's face."""
 
             logger.debug(f"Situation setup prompt: {situation_prompt[:200]}...")
             situation_response = self.anthropic.messages.create(
@@ -93,6 +105,8 @@ class StoryGenerator:
             logger.info("Starting story generation")
             story_prompt = f"""Write a 500-word narrative that can be easily adapted into a 6-panel manga-style comic. Use these details:
 
+            {self.FACE_REMINDER}
+
             Character Profile: {char_style_info}
             Situation: {situation_setup}
 
@@ -110,6 +124,8 @@ class StoryGenerator:
             - Include short, impactful dialogue or thought bubbles for each scene.
             - Incorporate the character's unique traits and the author's writing style throughout.
             - Ensure each scene has a clear visual focus and emotional beat.
+            - Convey the protagonist's emotions through body language, actions, and surroundings rather than facial expressions.
+            - Never describe the protagonist's facial features or expressions directly.
 
             Write in the style of {author}, paying attention to their narrative techniques and tonal qualities."""
 
@@ -140,6 +156,8 @@ class StoryGenerator:
             
             prompt = f"""Create a 6-panel manga-style webcomic without any text, inspired by this story concept: {truncated_summary}
 
+            {self.FACE_REMINDER}
+
             Comic Specifications:
             1. Style: Black and white manga art style with clean lines and expressive characters.
             2. Layout: 6 distinct panels arranged in a 2x3 grid.
@@ -150,13 +168,14 @@ class StoryGenerator:
                Panel 4: Illustrate a moment of reflection or decision-making.
                Panel 5: Show the character taking action based on their decision.
                Panel 6: Conclude with the character in a new state or environment, changed by their experience.
-            4. Character Design: Create a relatable protagonist with clear, exaggerated expressions to convey emotions without text.
-            5. Backgrounds: Include simple but effective backgrounds that establish the setting.
-            6. Visual Storytelling: Use varied angles, perspectives, and visual metaphors to convey the story without words.
-            7. Emotion: Focus on character expressions and body language to convey emotions clearly.
+            4. Character Design: Create a relatable protagonist without showing their face. Use body language, clothing, and surroundings to convey personality and emotions.
+            5. Backgrounds: Include simple but effective backgrounds that establish the setting and help convey the protagonist's emotions.
+            6. Visual Storytelling: Use varied angles, perspectives, and visual metaphors to convey the story without words or facial expressions.
+            7. Emotion: Focus on the protagonist's body language, gestures, and interaction with the environment to convey emotions clearly.
             8. NO TEXT: Do not include any speech bubbles, captions, or written elements of any kind.
+            9. Protagonist's Face: Never show the protagonist's face. Use creative angles, objects in the foreground, or show the character from behind to maintain this consistency.
 
-            Generate as a single image with 6 clearly defined panels. Ensure a logical visual flow across panels and absolutely no text or writing in the images."""
+            Generate as a single image with 6 clearly defined panels. Ensure a logical visual flow across panels, absolutely no text or writing in the images, and never reveal the protagonist's face."""
 
             logger.info(f"Sending prompt to OpenAI: {prompt}")
             response = self.openai.images.generate(
@@ -184,7 +203,7 @@ class StoryGenerator:
         Comic Image URL: {comic_url}
 
         For each of the 6 panels, provide:
-        1. A brief description of what's visually happening in the panel (2-3 sentences)
+        1. A brief description of what's visually happening in the panel (2-3 sentences), focusing on the protagonist's body language and surroundings rather than facial expressions.
         2. Any dialogue that would be appropriate for the characters in the scene (if applicable)
         3. Any narrative text that would enhance the story (if needed)
 
@@ -200,7 +219,7 @@ class StoryGenerator:
 
         ... (continue for all 6 panels)
 
-        Ensure the dialogue and narrative text align with the story summary and what can be inferred from the comic panels. Keep the text concise and impactful, suitable for a comic format."""
+        Ensure the dialogue and narrative text align with the story summary and what can be inferred from the comic panels. Keep the text concise and impactful, suitable for a comic format. Remember that the protagonist's face is never shown, so focus on other ways to convey their emotions and reactions."""
 
         try:
             response = self.anthropic.messages.create(
@@ -248,20 +267,23 @@ class StoryGenerator:
         
         prompt = f"""{context}
 
+        {self.FACE_REMINDER}
+
         Create a prompt for panel {panel_number} of a 6-panel manga-style webcomic based on the story above. This panel should:
 
         1. Logically follow from the previous panels (if any) and advance the story.
         2. Focus on a key moment or action that's visually interesting.
-        3. Convey character emotions and the overall mood of the scene.
-        4. Include relevant background details that establish the setting.
-        5. Be described in a way that can be clearly visualized and drawn.
+        3. Convey character emotions through body language, gestures, and interaction with the environment.
+        4. Include relevant background details that establish the setting and mood.
+        5. Be described in a way that can be clearly visualized and drawn without showing the protagonist's face.
 
         Remember:
         - The image should be in black and white manga style with clean lines and expressive characters.
+        - The protagonist's face must never be shown. Use creative angles, objects in the foreground, or show the character from behind.
         - Do not include any text, speech bubbles, or written elements in the description.
-        - Focus on visual elements only.
+        - Focus on visual elements only, emphasizing body language and environmental cues to convey emotions.
 
-        Describe the panel in about 2-3 sentences, focusing on what should be drawn."""
+        Describe the panel in about 2-3 sentences, focusing on what should be drawn while maintaining the 'faceless protagonist' constraint."""
 
         return self.anthropic.messages.create(
             model="claude-3-5-sonnet-20240620",
@@ -276,7 +298,7 @@ class StoryGenerator:
             logger.info(f"Generating panel with prompt: {panel_prompt[:100]}...")
             response = self.openai.images.generate(
                 model="dall-e-3",
-                prompt=f"Create a black and white manga-style panel for a webcomic. {panel_prompt} Do not include any text or speech bubbles.",
+                prompt=f"Create a black and white manga-style panel for a webcomic. {self.FACE_REMINDER} {panel_prompt} Do not include any text or speech bubbles. Explicitly ensure that the protagonist's face is not visible in any way - use creative angles, objects in the foreground, or show them from behind. Focus on body language and environmental cues to convey emotions.",
                 size="1024x1024",
                 quality="standard",
                 n=1,
