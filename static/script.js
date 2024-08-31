@@ -3,6 +3,7 @@ function generateStory() {
     const protagonist = document.getElementById('protagonist').value;
     const storyElement = document.getElementById('story');
     const comicImage = document.getElementById('comicImage');
+    const dialogueElement = document.getElementById('dialogue');
     const generateButton = document.getElementById('generateButton');
 
     if (!circumstance || !protagonist) {
@@ -12,6 +13,7 @@ function generateStory() {
 
     storyElement.textContent = 'Generating story...';
     comicImage.style.display = 'none';
+    dialogueElement.textContent = '';
     generateButton.disabled = true;
 
     fetch('/generate', {
@@ -31,6 +33,8 @@ function generateStory() {
         const decoder = new TextDecoder();
 
         storyElement.textContent = '';  // Clear the "Generating story..." message
+
+        let fullStory = '';
 
         function readChunk() {
             return reader.read().then(({ done, value }) => {
@@ -53,8 +57,12 @@ function generateStory() {
                     } else {
                         console.log('Invalid or missing comic URL');
                     }
+                } else if (chunk.startsWith('\n\nDIALOGUE:')) {
+                    const dialogueContent = chunk.split('\n\nDIALOGUE:')[1].trim();
+                    dialogueElement.innerHTML = formatDialogue(dialogueContent);
                 } else {
-                    storyElement.textContent += chunk;
+                    fullStory += chunk;
+                    storyElement.textContent = fullStory;
                     storyElement.scrollTop = storyElement.scrollHeight;
                 }
                 return readChunk();
@@ -69,7 +77,20 @@ function generateStory() {
     });
 }
 
-// ... (keep the rest of the file as it is) ...
+function formatDialogue(dialogue) {
+    // Split the dialogue into panels
+    const panels = dialogue.split('\n\n');
+    let formattedDialogue = '';
+
+    panels.forEach((panel, index) => {
+        formattedDialogue += `<div class="panel">
+            <h3>Panel ${index + 1}</h3>
+            ${panel.replace(/\n/g, '<br>')}
+        </div>`;
+    });
+
+    return formattedDialogue;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('storyForm');

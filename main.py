@@ -68,35 +68,21 @@ def generate_story():
         original_story = protagonist_info['Original Story']
         author = protagonist_info['Author']
 
-        logger.info("Generating character style info")
         char_style_info = story_generator.generate_char_style_info(protagonist_name, original_story, author)
-        logger.info(f"Character style info generated: {char_style_info[:100]}...")
-
-        logger.info("Generating situation setup")
         situation_setup = story_generator.generate_situation_setup(circumstance, char_style_info)
-        logger.info(f"Situation setup generated: {situation_setup[:100]}...")
-
+        
         def generate():
-            logger.info("Starting story generation")
-            story_chunks = []
-            for chunk in story_generator.generate_story(char_style_info, situation_setup, author):
-                story_chunks.append(chunk)
-                yield chunk
-
-            # After story generation is complete, generate the comic
-            full_story = "".join(story_chunks)
-            logger.info("Story generation complete. Generating comic...")
-            try:
-                comic_url = story_generator.generate_comic(full_story)
-                # URL encode the comic URL
-                encoded_comic_url = urllib.parse.quote(comic_url)
-                logger.info(f"Comic generated successfully. Encoded URL: {encoded_comic_url}")
-            except Exception as e:
-                logger.error(f"Error generating comic: {str(e)}")
-                encoded_comic_url = ""
+            story_summary, comic_url, dialogue = story_generator.generate_story_and_comic(char_style_info, situation_setup, author)
             
-            # Yield the encoded comic URL as a special chunk
+            # Yield the story
+            yield story_summary
+
+            # Yield the comic URL as a special chunk
+            encoded_comic_url = urllib.parse.quote(comic_url)
             yield f"\n\nCOMIC_URL:{encoded_comic_url}"
+
+            # Yield the dialogue as a special chunk
+            yield f"\n\nDIALOGUE:{dialogue}"
 
         return Response(stream_with_context(generate()), content_type='text/plain; charset=utf-8')
 

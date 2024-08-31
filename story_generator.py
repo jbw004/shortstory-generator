@@ -20,23 +20,26 @@ class StoryGenerator:
     def generate_char_style_info(self, protagonist_name, original_story, author):
         try:
             logger.info(f"Generating character style info for {protagonist_name}")
-            char_style_prompt = f"""Provide two separate pieces of information:
+            char_style_prompt = f"""Provide a detailed character profile and writing style analysis for a modern adaptation of {protagonist_name} from {original_story} by {author}:
 
-            1. Describe the core personality traits, general outlook, and typical reactions of a young adult (20s-30s) living in a modern Western city who embodies the essence of {protagonist_name} from {original_story}. Focus on universal human qualities, avoiding any superhuman abilities or specific plot references. Consider:
-               - Their general attitude towards life and others
-               - How they typically handle stress or challenges
-               - Their communication style and social tendencies
-               - Any notable quirks or habits that define their character
+            1. Character Profile:
+               a) Core personality traits (list 3-5 key traits)
+               b) Typical emotional responses to stress or challenges
+               c) Communication style and social tendencies
+               d) Notable quirks or habits
+               e) Key values or beliefs that drive their actions
+               f) A typical day in their life in a modern Western city
 
-            2. Summarize the key elements of {author}'s writing style in {original_story}, focusing on:
-               - Narrative voice and perspective
-               - Pacing and rhythm of storytelling
-               - Use of dialogue and internal monologue
-               - Descriptive techniques and atmosphere creation
-               - Any unique literary devices or tones characteristic of the author
+            2. Writing Style Analysis:
+               a) Narrative perspective (e.g., first-person, third-person limited)
+               b) Tone and mood (e.g., introspective, humorous, melancholic)
+               c) Pacing and rhythm of storytelling
+               d) Use of dialogue (e.g., sparse and meaningful, witty banter)
+               e) Descriptive techniques for settings and characters
+               f) Literary devices frequently employed (e.g., metaphors, flashbacks)
+               g) Sentence structure and vocabulary level
 
-            Ensure all descriptions are applicable to a realistic, modern-day setting."""
-
+            Ensure all descriptions are applicable to a realistic, modern-day setting and provide specific examples where possible."""
 
             logger.debug(f"Character style prompt: {char_style_prompt[:200]}...")
             char_style_response = self.anthropic.messages.create(
@@ -56,17 +59,19 @@ class StoryGenerator:
     def generate_situation_setup(self, circumstance, char_style_info):
         try:
             logger.info(f"Generating situation setup for circumstance: {circumstance[:50]}...")
-            situation_prompt = f"""Create a detailed scenario where a young adult (20s-30s) with the following traits directly faces this circumstance in a modern Western metropolitan city: {circumstance}
+            situation_prompt = f"""Create a vivid and detailed scenario for a 6-panel manga-style comic where a young adult with the following traits faces this circumstance in a modern Western city: {circumstance}
 
             Character traits: {char_style_info}
 
-            Consider:
-            1. How does this circumstance intersect with the character's daily life or routine?
-            2. What specific aspects of the situation would challenge or engage someone with these personality traits?
-            3. What internal conflict or dilemma might this create for the character?
-            4. How might their background or worldview influence their initial reaction?
+            Provide:
+            1. Setting: Describe the specific location and time of day. What visual elements would be prominent?
+            2. Inciting Incident: What exactly happens to bring the character into this circumstance?
+            3. Character's Initial Reaction: How does the character physically and emotionally respond?
+            4. Immediate Conflict: What obstacle or dilemma does the character face right away?
+            5. Supporting Characters: Introduce 1-2 other characters who might be involved. How do they look and act?
+            6. Potential for Drama: What elements of this scenario could lead to interesting visual storytelling?
 
-            Describe the scenario in about 100 words, focusing on the immediate situation and the character's initial thoughts or reactions. Avoid mentioning any specific names or references to the original story."""
+            Describe the scenario in about 150 words, focusing on vivid, visual details and emotionally charged moments that would translate well to a comic format."""
 
             logger.debug(f"Situation setup prompt: {situation_prompt[:200]}...")
             situation_response = self.anthropic.messages.create(
@@ -86,76 +91,72 @@ class StoryGenerator:
     def generate_story(self, char_style_info, situation_setup, author):
         try:
             logger.info("Starting story generation")
-            story_prompt = f"""Write a 500-word first-person narrative set in a modern Western city, featuring a young adult (20s-30s) with these traits:
+            story_prompt = f"""Write a 500-word narrative that can be easily adapted into a 6-panel manga-style comic. Use these details:
 
-            {char_style_info}
+            Character Profile: {char_style_info}
+            Situation: {situation_setup}
 
-            They find themselves in this situation:
-            {situation_setup}
+            Structure the story in 6 distinct scenes, each corresponding to a comic panel:
+
+            1. Opening Scene: Introduce the character and setting visually. Include a thought or short dialogue that establishes the mood.
+            2. Inciting Incident: Show the event that draws the character into the situation. Focus on their immediate reaction.
+            3. Rising Action: Depict the character facing the main conflict or challenge. Include dialogue or internal monologue that reveals their struggle.
+            4. Complication: Introduce a twist or additional obstacle. Show how this affects the character emotionally or physically.
+            5. Climax: Present the peak of the conflict. This should be the most visually and emotionally intense scene.
+            6. Resolution: Conclude with the character's final decision or the outcome of their actions. Include a visual or dialogue element that echoes the opening scene.
 
             Guidelines:
-            1. Begin the story in media res, immersing the reader in the character's thoughts or actions.
-            2. Use internal monologue to reveal the character's unique perspective and decision-making process.
-            3. Incorporate subtle references to the character's background or past experiences that shape their reactions, without explicitly mentioning their original story.
-            4. Focus on the character's emotional journey and growth through the situation.
-            5. Conclude with a resolution or pivotal decision that reflects the character's core traits.
+            - Use vivid, visual language that can be easily translated into comic panels.
+            - Include short, impactful dialogue or thought bubbles for each scene.
+            - Incorporate the character's unique traits and the author's writing style throughout.
+            - Ensure each scene has a clear visual focus and emotional beat.
 
-            Write in the style of {author}, paying attention to their narrative techniques and tonal qualities. Aim for approximately 500 words."""
+            Write in the style of {author}, paying attention to their narrative techniques and tonal qualities."""
 
             logger.debug(f"Story generation prompt: {story_prompt[:200]}...")
 
-            start_time = time.time()
-            try:
-                logger.info("Sending request to Anthropic API")
-                response = self.anthropic.messages.create(
-                    model="claude-3-5-sonnet-20240620",
-                    max_tokens=2000,
-                    temperature=0.7,
-                    stream=True,
-                    messages=[
-                        {"role": "user", "content": story_prompt}
-                    ]
-                )
-                logger.info("Request sent successfully")
-
-                for event in response:
-                    if event.type == "content_block_start":
-                        continue
-                    elif event.type == "content_block_delta":
-                        yield event.delta.text
-                    elif event.type == "message_delta":
-                        if event.delta.stop_reason:
-                            logger.info(f"Story generation stopped: {event.delta.stop_reason}")
-                    elif event.type == "message_stop":
-                        logger.info("Story generation complete")
-
-            except Exception as e:
-                logger.error(f"Error sending request to Anthropic API: {str(e)}")
-                yield f"Error sending request to API: {str(e)}"
-                return
-
-            end_time = time.time()
-            logger.info(f"Story generation complete. Time taken: {end_time - start_time:.2f} seconds")
+            response = self.anthropic.messages.create(
+                model="claude-3-5-sonnet-20240620",
+                max_tokens=2000,
+                temperature=0.7,
+                messages=[
+                    {"role": "user", "content": story_prompt}
+                ]
+            )
+            logger.info("Story generated successfully")
+            return response.content[0].text
 
         except Exception as e:
             logger.error(f"Unexpected error in generate_story: {str(e)}")
             logger.error(traceback.format_exc())
-            yield f"An unexpected error occurred during story generation: {str(e)}"
+            raise
+
     def generate_comic(self, story_summary):
         try:
             logger.info("Starting comic generation with OpenAI")
 
-            # Truncate the story summary to ensure the prompt fits within limits
-            max_summary_length = 300  # Adjust this value as needed
+            max_summary_length = 100
             truncated_summary = story_summary[:max_summary_length] + ("..." if len(story_summary) > max_summary_length else "")
             
-            prompt = f"""Create a 6-panel manga-style webcomic:
-        1. Key scenes from this story: {truncated_summary}
-        2. Blank speech bubbles where appropriate
-        3. Black and white manga art style
-        4. Logical story flow across panels
-        5. No text or writing in images
-        Generate as single image with 6 distinct panels."""
+            prompt = f"""Create a 6-panel manga-style webcomic without any text, inspired by this story concept: {truncated_summary}
+
+            Comic Specifications:
+            1. Style: Black and white manga art style with clean lines and expressive characters.
+            2. Layout: 6 distinct panels arranged in a 2x3 grid.
+            3. Panel Content:
+               Panel 1: Introduce the main character in their everyday environment.
+               Panel 2: Show the character encountering a new situation or challenge.
+               Panel 3: Depict the character's reaction or initial attempt to address the situation.
+               Panel 4: Illustrate a moment of reflection or decision-making.
+               Panel 5: Show the character taking action based on their decision.
+               Panel 6: Conclude with the character in a new state or environment, changed by their experience.
+            4. Character Design: Create a relatable protagonist with clear, exaggerated expressions to convey emotions without text.
+            5. Backgrounds: Include simple but effective backgrounds that establish the setting.
+            6. Visual Storytelling: Use varied angles, perspectives, and visual metaphors to convey the story without words.
+            7. Emotion: Focus on character expressions and body language to convey emotions clearly.
+            8. NO TEXT: Do not include any speech bubbles, captions, or written elements of any kind.
+
+            Generate as a single image with 6 clearly defined panels. Ensure a logical visual flow across panels and absolutely no text or writing in the images."""
 
             logger.info(f"Sending prompt to OpenAI: {prompt}")
             response = self.openai.images.generate(
@@ -175,13 +176,61 @@ class StoryGenerator:
             logger.error(traceback.format_exc())
             raise
 
+    def generate_dialogue(self, story_summary, comic_url):
+        dialogue_prompt = f"""Based on the following story summary and a 6-panel comic image, generate appropriate dialogue or narrative text for each panel:
+
+        Story Summary: {story_summary}
+
+        Comic Image URL: {comic_url}
+
+        For each of the 6 panels, provide:
+        1. A brief description of what's visually happening in the panel (2-3 sentences)
+        2. Any dialogue that would be appropriate for the characters in the scene (if applicable)
+        3. Any narrative text that would enhance the story (if needed)
+
+        Format your response as follows:
+
+        Panel 1:
+        Visual Description: [Description here]
+        Dialogue/Narrative: [Text here]
+
+        Panel 2:
+        Visual Description: [Description here]
+        Dialogue/Narrative: [Text here]
+
+        ... (continue for all 6 panels)
+
+        Ensure the dialogue and narrative text align with the story summary and what can be inferred from the comic panels. Keep the text concise and impactful, suitable for a comic format."""
+
+        try:
+            response = self.anthropic.messages.create(
+                model="claude-3-5-sonnet-20240620",
+                max_tokens=1000,
+                messages=[
+                    {"role": "user", "content": dialogue_prompt}
+                ]
+            )
+            return response.content[0].text
+        except Exception as e:
+            logger.error(f"Error in generate_dialogue: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
+
     def generate_story_and_comic(self, char_style_info, situation_setup, author):
         try:
             logger.info("Starting story and comic generation")
+            
+            # Generate the story
             story = self.generate_story(char_style_info, situation_setup, author)
-            story_summary = " ".join(list(story))  # Collect the entire story
+            story_summary = story  # The story is already a complete text
+            
+            # Generate the textless comic
             comic_url = self.generate_comic(story_summary)
-            return story_summary, comic_url
+            
+            # Generate dialogue for the comic
+            dialogue = self.generate_dialogue(story_summary, comic_url)
+            
+            return story_summary, comic_url, dialogue
         except Exception as e:
             logger.error(f"Error in generate_story_and_comic: {str(e)}")
             logger.error(traceback.format_exc())
