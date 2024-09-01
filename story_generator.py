@@ -164,8 +164,8 @@ class StoryGenerator:
 
     def generate_derivative_story(self, original_story, visual_summary, char_style_info):
         try:
-            logger.info("Starting derivative story generation")
-            derivative_prompt = f"""Create a fast-paced, engaging derivative of the following story, focusing on the protagonist's journey of personal growth within the given circumstance. The story should complement the provided visual summary without redundant setting descriptions.
+            logger.info("Starting generation of 1-minute read-aloud snippet")
+            snippet_prompt = f"""Create a captivating 1-minute read-aloud snippet based on the following story and visual summary. This snippet should hook listeners scrolling through social media, compelling them to stop and listen to the entire piece.
 
             Original Story:
             {original_story}
@@ -176,32 +176,33 @@ class StoryGenerator:
             Character Profile and Style:
             {char_style_info}
 
-            Guidelines for the derivative story:
-            1. Maintain the cinematic first-person perspective, incorporating the specific first-person narration voice details provided in the character profile.
-            2. Minimize detailed setting descriptions, as they are already conveyed in the image.
-            3. Focus intensely on the protagonist's internal struggle and growth, without explicitly labeling their emotions.
-            4. Use short, punchy sentences and paragraphs to increase pacing and convey the character's emotional state through action and thought.
-            5. Incorporate elements of tension and introspection to keep the reader engaged in the character's journey.
-            6. Emphasize how the protagonist's unique traits and experiences contribute to their ability to overcome challenges.
-            7. Ensure a clear progression of events that creates a "can't-put-it-down" feeling, centered on the theme of personal growth.
-            8. Deliver the story's message through the character's thoughts, actions, and dialogue rather than explicit statements.
-            9. Aim for approximately 400 words to maintain a tight, focused narrative on the character's journey.
-            10. Avoid any direct references to the character's original story, universe, or specific plot elements from their source material.
-            11. Ensure the story remains relatable and grounded in a modern, realistic setting while exploring universal themes of resilience and self-discovery.
+            Guidelines for the 1-minute read-aloud snippet:
+            1. Start with a powerful, attention-grabbing sentence that introduces the protagonist's dilemma or the story's central conflict.
+            2. Use vivid, sensory language to quickly immerse the listener in the scene.
+            3. Maintain a cinematic first-person perspective, incorporating the character's unique voice.
+            4. Focus on a pivotal moment or decision that encapsulates the protagonist's journey.
+            5. Use short, punchy sentences interspersed with occasional longer ones for rhythm.
+            6. Incorporate one or two lines of impactful dialogue if relevant.
+            7. End with a compelling cliffhanger or thought-provoking statement that leaves the listener wanting more.
+            8. Aim for approximately 150-175 words to fit a ~1-minute read-aloud format.
+            9. Ensure the snippet feels complete enough to be satisfying, yet open-ended enough to intrigue.
+            10. Subtly showcase the protagonist's growth or internal struggle without explicitly stating it.
+            11. Use active voice and strong verbs to maintain a sense of immediacy and urgency.
+            12. Avoid any direct references to the character's original story or universe.
 
-            Generate a gripping, fast-paced version of the story that complements the visual elements without rehashing them, while staying true to the protagonist's unique narrative voice and their journey of personal growth. Avoid explicitly mentioning concepts like doubt or confidence; instead, show these themes through the character's actions and internal monologue."""
+            Create a gripping, fast-paced snippet that captures the essence of the story and character, designed to be irresistible when heard as a voice-over on social media."""
 
-            logger.debug(f"Derivative story generation prompt: {derivative_prompt[:200]}...")
+            logger.debug(f"1-minute snippet generation prompt: {snippet_prompt[:200]}...")
 
             response = self.anthropic.messages.create(
                 model="claude-3-5-sonnet-20240620",
-                max_tokens=2000,
+                max_tokens=1000,
                 temperature=0.7,
                 messages=[
-                    {"role": "user", "content": derivative_prompt}
+                    {"role": "user", "content": snippet_prompt}
                 ]
             )
-            logger.info("Derivative story generated successfully")
+            logger.info("1-minute read-aloud snippet generated successfully")
             return response.content[0].text
 
         except Exception as e:
