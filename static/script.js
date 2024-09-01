@@ -2,7 +2,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('storyForm');
     const comicContainer = document.getElementById('comicContainer');
     const storyElement = document.getElementById('story');
+    const visualSummaryElement = document.getElementById('visualSummary');
     const generateButton = document.getElementById('generateButton');
+    const resultsContainer = document.getElementById('results');
 
     if (form) {
         form.addEventListener('submit', (event) => {
@@ -24,7 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         comicContainer.innerHTML = '';
         storyElement.textContent = 'Generating...';
+        visualSummaryElement.textContent = '';
         generateButton.disabled = true;
+        resultsContainer.style.display = 'none';
 
         fetch('/generate', {
             method: 'POST',
@@ -53,7 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.story) {
                 storyElement.textContent = data.story;
             }
+            if (data.visual_summary) {
+                visualSummaryElement.textContent = data.visual_summary;
+            }
             generateButton.disabled = false;
+            resultsContainer.style.display = 'block';
         })
         .catch(error => {
             console.error('Error:', error);
