@@ -12,7 +12,7 @@ env_path = script_dir / 'jawn.env'
 # Load environment variables from .env file
 load_dotenv(dotenv_path=env_path)
 
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify, send_from_directory
 import logging
 import sys
 from story_generator import StoryGenerator
@@ -84,6 +84,9 @@ def generate_story():
         logger.error(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
+@app.route('/static/<path:path>')
+def send_static(path):
+    return send_from_directory('static', path)
 if __name__ == '__main__':
     try:
         logger.info("Starting Flask application")

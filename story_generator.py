@@ -1,6 +1,7 @@
 import logging
 from anthropic import Anthropic
 from openai import OpenAI
+import replicate
 import os
 import traceback
 import time
@@ -12,11 +13,11 @@ class StoryGenerator:
     def __init__(self):
         logger.info("Initializing StoryGenerator")
         self.anthropic = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-        self.openai = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        self.replicate_api_token = os.environ.get("REPLICATE_API_TOKEN")
         if not os.environ.get("ANTHROPIC_API_KEY"):
             logger.error("ANTHROPIC_API_KEY not found in environment variables")
-        if not os.environ.get("OPENAI_API_KEY"):
-            logger.error("OPENAI_API_KEY not found in environment variables")
+        if not self.replicate_api_token:
+            logger.error("REPLICATE_API_TOKEN not found in environment variables")
 
     def generate_char_style_info(self, protagonist_name, original_story, author):
         try:
@@ -162,7 +163,7 @@ class StoryGenerator:
 
     def generate_comic(self, story):
         try:
-            logger.info("Starting comic generation with OpenAI")
+            logger.info("Starting comic generation with Flux Dev model")
 
             # Extract the visual summary from the story
             visual_summary_start = story.find("VISUAL SUMMARY:")
@@ -199,19 +200,32 @@ class StoryGenerator:
 
             Generate as a single, highly detailed image that captures the essence of the story in Tsutomu Nihei's distinctive style, while accurately representing the specific elements described in the visual summary."""
 
-            logger.info(f"Sending prompt to OpenAI: {prompt[:200]}...")
-            response = self.openai.images.generate(
-                model="dall-e-3",
-                prompt=prompt,
-                size="1024x1024",
-                quality="hd",
-                n=1,
-            )
-            logger.info("Received response from OpenAI")
+            input_params = {
+                "prompt": prompt,
+                "guidance": 3.5,  # You can adjust this value
+                "num_inference_steps": 50,  # Maximum allowed
+                "aspect_ratio": "1:1",  # You can adjust this based on your preference
+                "output_format": "png",
+                "output_quality": 100,  # Maximum quality
+            }
 
-            image_url = response.data[0].url
-            logger.info(f"Comic image generated successfully. URL: {image_url}")
-            return image_url
+            logger.info(f"Sending prompt to Flux Dev model: {prompt[:200]}...")
+            
+            output = replicate.run(
+                "black-forest-labs/flux-dev",
+                input=input_params
+            )
+
+            logger.info("Received response from Flux Dev model")
+
+            if output and isinstance(output, list) and len(output) > 0:
+                image_url = output[0]
+                logger.info(f"Comic image generated successfully. URL: {image_url}")
+                return image_url
+            else:
+                logger.error("No image URL received from Flux Dev model")
+                raise ValueError("Failed to generate image")
+
         except Exception as e:
             logger.error(f"Error in generate_comic: {str(e)}")
             logger.error(traceback.format_exc())
