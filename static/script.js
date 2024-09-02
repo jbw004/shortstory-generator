@@ -54,6 +54,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 img.className = 'comic-image';
                 comicContainer.appendChild(img);
             }
+            if (data.side_profile_url) {
+                const sideProfileImg = document.createElement('img');
+                sideProfileImg.src = data.side_profile_url;
+                sideProfileImg.alt = 'Character Side Profile';
+                sideProfileImg.className = 'character-image';
+                comicContainer.appendChild(sideProfileImg);
+            }
+            if (data.headshot_url) {
+                const headshotImg = document.createElement('img');
+                headshotImg.src = data.headshot_url;
+                headshotImg.alt = 'Character Headshot';
+                headshotImg.className = 'character-image';
+                comicContainer.appendChild(headshotImg);
+            }
             if (data.story) {
                 storyElement.textContent = data.story;
             }

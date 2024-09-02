@@ -1,7 +1,6 @@
 import logging
 from anthropic import Anthropic
 from openai import OpenAI
-import replicate
 import os
 import traceback
 import time
@@ -13,11 +12,11 @@ class StoryGenerator:
     def __init__(self):
         logger.info("Initializing StoryGenerator")
         self.anthropic = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-        self.replicate_api_token = os.environ.get("REPLICATE_API_TOKEN")
+        self.openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         if not os.environ.get("ANTHROPIC_API_KEY"):
             logger.error("ANTHROPIC_API_KEY not found in environment variables")
-        if not self.replicate_api_token:
-            logger.error("REPLICATE_API_TOKEN not found in environment variables")
+        if not os.environ.get("OPENAI_API_KEY"):
+            logger.error("OPENAI_API_KEY not found in environment variables")
 
     def generate_char_style_info(self, protagonist_name, original_story, author):
         try:
@@ -210,9 +209,85 @@ class StoryGenerator:
             logger.error(traceback.format_exc())
             raise
 
-    def generate_story_and_comic(self, char_style_info, situation_setup, author):
+    def generate_image_with_dalle(self, prompt):
         try:
-            logger.info("Starting story and comic generation")
+            logger.info(f"Generating image with DALL-E. Prompt: {prompt[:100]}...")
+            response = self.openai_client.images.generate(
+                model="dall-e-3",
+                prompt=prompt,
+                size="1024x1024",
+                quality="standard",
+                n=1,
+            )
+            image_url = response.data[0].url
+            logger.info(f"Image generated successfully. URL: {image_url}")
+            return image_url
+        except Exception as e:
+            logger.error(f"Error in generate_image_with_dalle: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
+
+    def extract_key_traits(self, char_style_info):
+        # Extract and summarize key traits from the character info
+        # This is a simplified example; you may need to adjust based on your char_style_info structure
+        traits = []
+        if "Core personality traits" in char_style_info:
+            traits.extend(char_style_info.split("Core personality traits:")[1].split("\n")[1:4])
+        if "Basic physical characteristics" in char_style_info:
+            traits.append(char_style_info.split("Basic physical characteristics:")[1].split("\n")[1])
+        
+        # Filter out potentially problematic words
+        safe_traits = [trait for trait in traits if not any(word in trait.lower() for word in ["violent", "aggressive", "weapon", "blood", "gore", "explicit"])]
+        
+        return ", ".join(trait.strip() for trait in safe_traits if trait.strip())
+
+    def generate_character_images(self, char_style_info):
+        try:
+            logger.info("Starting character image generation with DALL-E")
+
+            # Extract key information from char_style_info
+            key_traits = self.extract_key_traits(char_style_info)
+
+            # Base prompt template
+            base_prompt = """Create a tasteful, family-friendly manga-style image inspired by the art of Tsutomu Nihei. The image should be black and white, featuring a character with the following traits: {traits}
+
+            Image Specifications:
+            1. Black and white manga art style
+            2. Intricate details in clothing and background
+            3. Strong use of light and shadow
+            4. Minimal abstract background
+            5. Suitable for all audiences
+
+            The character should appear contemplative and determined, avoiding any aggressive or controversial poses or expressions."""
+
+            side_profile_prompt = base_prompt.format(traits=key_traits) + """
+            Additional details:
+            - Detailed side view of the character's face and upper body
+            - Character looking thoughtfully to the side
+
+            Generate a single, highly detailed side profile image in a respectful and artistic style."""
+
+            headshot_prompt = base_prompt.format(traits=key_traits) + """
+            Additional details:
+            - Close-up, front-facing view of the character's face and upper shoulders
+            - Character with a calm, focused expression
+
+            Generate a single, highly detailed headshot image in a respectful and artistic style."""
+
+            side_profile_url = self.generate_image_with_dalle(side_profile_prompt)
+            headshot_url = self.generate_image_with_dalle(headshot_prompt)
+
+            logger.info("Character images generated successfully with DALL-E")
+            return side_profile_url, headshot_url
+
+        except Exception as e:
+            logger.error(f"Error in generate_character_images: {str(e)}")
+            logger.error(traceback.format_exc())
+            raise
+
+    def generate_story_and_images(self, char_style_info, situation_setup, author):
+        try:
+            logger.info("Starting story and image generation")
             
             # Generate the original story with visual summary
             full_story = self.generate_story(char_style_info, situation_setup, author)
@@ -225,20 +300,22 @@ class StoryGenerator:
             # Generate the derivative story
             derivative_story = self.generate_derivative_story(original_story, visual_summary, char_style_info)
             
-            # Generate the single comic image
+            # Generate the comic image
             comic_url = self.generate_comic(full_story)
             
-            return comic_url, derivative_story, visual_summary
+            # Generate character images
+            side_profile_url, headshot_url = self.generate_character_images(char_style_info)
+            
+            return comic_url, derivative_story, visual_summary, side_profile_url, headshot_url
         except Exception as e:
-            logger.error(f"Error in generate_story_and_comic: {str(e)}")
+            logger.error(f"Error in generate_story_and_images: {str(e)}")
             logger.error(traceback.format_exc())
             raise
 
     def generate_comic(self, story):
         try:
-            logger.info("Starting comic generation with Flux Dev model")
+            logger.info("Starting comic generation with DALL-E")
 
-            # Extract the visual summary from the story
             visual_summary_start = story.find("VISUAL SUMMARY:")
             visual_summary = story[visual_summary_start:].strip() if visual_summary_start != -1 else ""
 
@@ -271,33 +348,11 @@ class StoryGenerator:
                - Create a mood that reflects the story's described atmosphere
             7. NO TEXT: Do not include any speech bubbles, captions, or written elements of any kind.
 
-            Generate as a single, highly detailed image that captures the essence of the story in Tsutomu Nihei's distinctive style, while accurately representing the specific elements described in the visual summary."""
+            Generate a single, highly detailed image that captures the essence of the story in Tsutomu Nihei's distinctive style, while accurately representing the specific elements described in the visual summary."""
 
-            input_params = {
-                "prompt": prompt,
-                "guidance": 3.5,  # You can adjust this value
-                "num_inference_steps": 50,  # Maximum allowed
-                "aspect_ratio": "1:1",  # You can adjust this based on your preference
-                "output_format": "png",
-                "output_quality": 100,  # Maximum quality
-            }
-
-            logger.info(f"Sending prompt to Flux Dev model: {prompt[:200]}...")
-            
-            output = replicate.run(
-                "black-forest-labs/flux-dev",
-                input=input_params
-            )
-
-            logger.info("Received response from Flux Dev model")
-
-            if output and isinstance(output, list) and len(output) > 0:
-                image_url = output[0]
-                logger.info(f"Comic image generated successfully. URL: {image_url}")
-                return image_url
-            else:
-                logger.error("No image URL received from Flux Dev model")
-                raise ValueError("Failed to generate image")
+            comic_url = self.generate_image_with_dalle(prompt)
+            logger.info("Comic image generated successfully with DALL-E")
+            return comic_url
 
         except Exception as e:
             logger.error(f"Error in generate_comic: {str(e)}")
