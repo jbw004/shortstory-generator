@@ -28,9 +28,16 @@ logger = logging.getLogger(__name__)
 logger.info("Starting application initialization")
 
 # Check for ANTHROPIC_API_KEY
-if not os.environ.get("ANTHROPIC_API_KEY"):
-    logger.error("ANTHROPIC_API_KEY is not set in environment variables")
+anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+if not anthropic_api_key:
+    logger.error("ANTHROPIC_API_KEY not found in environment variables")
     raise ValueError("ANTHROPIC_API_KEY is not set")
+
+# Check for REPLICATE_API_TOKEN
+replicate_api_token = os.environ.get("REPLICATE_API_TOKEN")
+if not replicate_api_token:
+    logger.error("REPLICATE_API_TOKEN not found in environment variables")
+    raise ValueError("REPLICATE_API_TOKEN is not set")
 
 try:
     # Initialize StoryGenerator

@@ -1,9 +1,9 @@
 import logging
 from anthropic import Anthropic
-from openai import OpenAI
 import os
 import traceback
 import time
+import replicate
 
 logger = logging.getLogger(__name__)
 
@@ -11,12 +11,23 @@ class StoryGenerator:
 
     def __init__(self):
         logger.info("Initializing StoryGenerator")
-        self.anthropic = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-        self.openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-        if not os.environ.get("ANTHROPIC_API_KEY"):
+        
+        # Initialize Anthropic
+        anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not anthropic_api_key:
             logger.error("ANTHROPIC_API_KEY not found in environment variables")
-        if not os.environ.get("OPENAI_API_KEY"):
-            logger.error("OPENAI_API_KEY not found in environment variables")
+            raise ValueError("ANTHROPIC_API_KEY is not set")
+        self.anthropic = Anthropic(api_key=anthropic_api_key)
+        
+        # Initialize Replicate
+        replicate_api_token = os.environ.get("REPLICATE_API_TOKEN")
+        if not replicate_api_token:
+            logger.error("REPLICATE_API_TOKEN not found in environment variables")
+            raise ValueError("REPLICATE_API_TOKEN is not set")
+        self.replicate_api_token = replicate_api_token
+        os.environ["REPLICATE_API_TOKEN"] = replicate_api_token
+        
+        logger.info("StoryGenerator initialized successfully")
 
     def generate_char_style_info(self, protagonist_name, original_story, author):
         try:
@@ -209,27 +220,29 @@ class StoryGenerator:
             logger.error(traceback.format_exc())
             raise
 
-    def generate_image_with_dalle(self, prompt):
+    def generate_image_with_replicate(self, prompt):
         try:
-            logger.info(f"Generating image with DALL-E. Prompt: {prompt[:100]}...")
-            response = self.openai_client.images.generate(
-                model="dall-e-3",
-                prompt=prompt,
-                size="1024x1024",
-                quality="standard",
-                n=1,
+            logger.info(f"Generating image with Replicate. Prompt: {prompt[:100]}...")
+            output = replicate.run(
+                "black-forest-labs/flux-dev",  # Remove the version hash
+                input={
+                    "prompt": prompt,
+                    "num_outputs": 1,
+                    "aspect_ratio": "1:1",
+                    "guidance": 3,
+                    "num_inference_steps": 28
+                }
             )
-            image_url = response.data[0].url
+            image_url = output[0]
             logger.info(f"Image generated successfully. URL: {image_url}")
             return image_url
         except Exception as e:
-            logger.error(f"Error in generate_image_with_dalle: {str(e)}")
+            logger.error(f"Error in generate_image_with_replicate: {str(e)}")
             logger.error(traceback.format_exc())
             raise
 
     def extract_key_traits(self, char_style_info):
         # Extract and summarize key traits from the character info
-        # This is a simplified example; you may need to adjust based on your char_style_info structure
         traits = []
         if "Core personality traits" in char_style_info:
             traits.extend(char_style_info.split("Core personality traits:")[1].split("\n")[1:4])
@@ -243,7 +256,7 @@ class StoryGenerator:
 
     def generate_character_images(self, char_style_info):
         try:
-            logger.info("Starting character image generation with DALL-E")
+            logger.info("Starting character image generation with Replicate")
 
             # Extract key information from char_style_info
             key_traits = self.extract_key_traits(char_style_info)
@@ -274,8 +287,8 @@ class StoryGenerator:
 
             Generate a single, highly detailed headshot image in a respectful and artistic style."""
 
-            side_profile_url = self.generate_image_with_dalle(side_profile_prompt)
-            headshot_url = self.generate_image_with_dalle(headshot_prompt)
+            side_profile_url = self.generate_image_with_replicate(side_profile_prompt)
+            headshot_url = self.generate_image_with_replicate(headshot_prompt)
 
             logger.info("Character images generated successfully with DALL-E")
             return side_profile_url, headshot_url
@@ -350,8 +363,8 @@ class StoryGenerator:
 
             Generate a single, highly detailed image that captures the essence of the story in Tsutomu Nihei's distinctive style, while accurately representing the specific elements described in the visual summary."""
 
-            comic_url = self.generate_image_with_dalle(prompt)
-            logger.info("Comic image generated successfully with DALL-E")
+            comic_url = self.generate_image_with_replicate(prompt)
+            logger.info("Comic image generated successfully with Replicate")
             return comic_url
 
         except Exception as e:
