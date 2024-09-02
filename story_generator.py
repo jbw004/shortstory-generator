@@ -290,7 +290,7 @@ class StoryGenerator:
             side_profile_url = self.generate_image_with_replicate(side_profile_prompt)
             headshot_url = self.generate_image_with_replicate(headshot_prompt)
 
-            logger.info("Character images generated successfully with DALL-E")
+            logger.info("Character images generated successfully with Replicate")
             return side_profile_url, headshot_url
 
         except Exception as e:
@@ -327,12 +327,12 @@ class StoryGenerator:
 
     def generate_comic(self, story):
         try:
-            logger.info("Starting comic generation with DALL-E")
+            logger.info("Starting comic generation with Replicate")
 
             visual_summary_start = story.find("VISUAL SUMMARY:")
             visual_summary = story[visual_summary_start:].strip() if visual_summary_start != -1 else ""
 
-            prompt = f"""Create a single, detailed manga-style webcomic image in the style of Tsutomu Nihei, inspired by this story concept and visual summary:
+            prompt = f"""Create a single, family-friendly manga-style image image in the style of Tsutomu Nihei, inspired by this story concept and visual summary:
 
             {visual_summary}
 
